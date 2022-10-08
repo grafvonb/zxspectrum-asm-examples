@@ -1,0 +1,82 @@
+# file opened: math.asm
+ 1    0000                  device	zxspectrum48
+ 2    0000
+ 3    0000              ENTER = $0D
+ 4    0000
+ 5    0000                  org $8000
+ 6    8000
+ 7    8000 C3 05 80         jp start
+ 8    8003
+ 9    8003              scratch:
+10    8003 00 00            dw 0            ; 2 bytes of RAM for general temporary use
+11    8005
+12    8005              start:
+13    8005 3E 10            ld a,$10
+14    8007 C6 02            add a,$02           ; A = $12, clears all flags
+15    8009 21 56 34         ld hl,$3456
+16    800C CD 38 80         call print_afhl     ; print A,F,H,L registers
+17    800F 16 0E            ld d,$0E            ; A = $12 + $0E = $20, sets H
+18    8011 CD 38 80         call print_afhl
+19    8014 21 03 80         ld hl,scratch       ; HL = $8003
+20    8017 36 60            ld (hl),$60
+21    8019 86               add a,(hl)          ; A = $20 + $60 = $80, sets S and P/V
+22    801A CD 38 80         call print_afhl
+23    801D 84               add a,h             ; A = $80 + $80 = $00, sets Z, P/V and C
+24    801E CD 38 80         call print_afhl
+25    8021 3C               inc a               ; A = $01, clears all flags, butleaves C set
+26    8022 CD 38 80         call print_afhl
+27    8025 ED 44            neg                 ; A = $00 - $01 = $FF, sets S, H, N, and C
+28    8027 CD 38 80         call print_afhl
+29    802A 01 03 00         ld bc,$0003
+30    802D ED 42            sbc hl,bc           ; HL = $8003 - $0003 - 1 = $7FFF, sets H, P/V, and N
+31    802F CD 38 80         call print_afhl
+32    8032 ED 62            sbc hl,hl           ; HL = $0000, sets Z and N
+33    8034 CD 38 80         call print_afhl
+34    8037 C9               ret
+35    8038
+36    8038              print_afhl:
+37    8038 E5               push hl
+38    8039 F5               push af
+39    803A CD 57 80         call print_hex      ; print A in hex
+40    803D ED 73 03 80      ld (scratch),sp
+41    8041 ED 4B 03 80      ld bc,(scratch)     ; BC = stack pointer address
+42    8045 0A               ld a,(bc)           ; A = F at top of the stack
+43    8046 CD 57 80         call print_hex
+44    8049 7C               ld a,h
+45    804A CD 57 80         call print_hex
+46    804D 7D               ld a,l
+47    804E CD 57 80         call print_hex
+48    8051 3E 0D            ld a,ENTER
+49    8053 D7               rst $10
+50    8054 F1               pop af
+51    8055 E1               pop hl
+52    8056 C9               ret
+53    8057
+54    8057              print_hex:
+55    8057 E5               push hl
+56    8058 F5               push af
+57    8059 CB 3F            srl a
+58    805B CB 3F            srl a
+59    805D CB 3F            srl a
+60    805F CB 3F            srl a                   ; A >> 4
+61    8061 CD 6C 80         call print_hex_digit    ; print high nybble
+62    8064 F1               pop af                  ; restore A
+63    8065 E6 0F            and $0F                 ; clear high nybble
+64    8067 CD 6C 80         call print_hex_digit    ; print low nybble
+65    806A E1               pop hl
+66    806B C9               ret
+67    806C
+68    806C              print_hex_digit:
+69    806C FE 0A            cp $0A
+70    806E F2 76 80         jp p,print_letter       ; if S clear, A >= $0A
+71    8071 F6 30            or $30                  ; A < $0A, just put $3 in upper nybble for number code
+72    8073 C3 78 80         jp print_char
+73    8076              print_letter:
+74    8076 C6 37            add $37                 ; A >= $0A, add $37 to get letter code
+75    8078              print_char:
+76    8078 D7               rst $10
+77    8079 C9               ret
+78    807A
+79    807A                  savesna "math.sna",start
+80    807A
+# file closed: math.asm
