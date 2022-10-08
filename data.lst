@@ -1,0 +1,53 @@
+# file opened: data.asm
+ 1    0000                  device	zxspectrum48
+ 2    0000
+ 3    0000                  org $8000
+ 4    8000
+ 5    8000              start:
+ 6    8000 3E CC            ld a,%11001100
+ 7    8002 11 00 40         ld de,$4000
+ 8    8005 12               ld (de),a
+ 9    8006 EB               ex de,hl
+10    8007 11 01 40         ld de,$4001
+11    800A 01 00 02         ld bc,$200
+12    800D              bitmap_loop:
+13    800D ED A0            ldi                 ; (de)=(hl), hl++, de++, bc--
+14    800F 78               ld a,b              ; a=b
+15    8010 B1               or c                ; a OR c
+16    8011 20 FA            jr nz,bitmap_loop   ; if (a | c) != 0 (if b == 0 and c == 0 => no loop)
+17    8013 CB 3E            srl (hl)            ; shift pattern to right
+18    8015 01 00 02         ld bc,$200
+19    8018 ED B0            ldir
+20    801A CB 3E            srl (hl)
+21    801C 11 FF 45         ld de,$45FF
+22    801F ED A8            ldd                 ; (de)=(hl), hl--, de--, bc--
+23    8021 01 FE 01         ld bc,$1FE          ; first and last block already filled so just the middle
+24    8024 21 FF 45         ld hl,$45FF
+25    8027 ED B8            lddr                ; fill the third block backwards
+26    8029 21 00 46         ld hl,$4600
+27    802C 36 99            ld (hl),%10011001
+28    802E 11 01 46         ld de,$4601
+29    8031 01 FF 01         ld bc,$1FF
+30    8034 D9               exx                 ; copy to shadow regs, to use values later
+31    8035 21 00 58         ld hl,$5800
+32    8038 36 41            ld (hl),$41         ; blue on black
+33    803A 11 01 58         ld de,$5801
+34    803D 01 FF 00         ld bc,$FF
+35    8040              color_loop:
+36    8040 ED A0            ldi
+37    8042 34               inc (hl)            ; inc ink color
+38    8043 3E 07            ld a,$07
+39    8045 A6               and (hl)            ; check if ink set to zero (black)
+40    8046 20 02            jr nz,next
+41    8048 36 41            ld (hl),$41         ; reload color
+42    804A              next:
+43    804A 78               ld a,b
+44    804B B1               or c
+45    804C 20 F2            jr nz,color_loop
+46    804E D9               exx                 ; bring back 4th block addresses
+47    804F ED B0            ldir                ; fill it
+48    8051 C9               ret
+49    8052
+50    8052                  savesna "data.sna",start
+51    8052
+# file closed: data.asm
