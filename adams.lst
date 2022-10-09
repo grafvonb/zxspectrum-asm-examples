@@ -1,50 +1,58 @@
 # file opened: adams.asm
  1    0000                  device	zxspectrum48
  2    0000
- 3    0000              ; const
- 4    0000              ENTER = $0D
- 5    0000
- 6    0000                  org $8000
- 7    8000 C3 10 80         jp start
- 8    8003
- 9    8003              data:
-10    8003 48 65 6C 6C      db "Hello World!",ENTER
-10    8007 6F 20 57 6F
-10    800B 72 6C 64 21
-10    800F 0D
-11    8010              DATA_LENGTH = $ - data
-12    8010
-13    8010              start:
-14    8010 CD 1F 80         call screen.clear
-15    8013 C9               ret
-16    8014 21 03 80         ld hl,data
-17    8017 06 0D            ld b,DATA_LENGTH
-18    8019              print_loop:
-19    8019 7E               ld a,(hl)
-20    801A D7               rst $10
-21    801B 23               inc hl
-22    801C 10 FB            djnz print_loop
-23    801E C9               ret
-24    801F
-25    801F                  module screen
-26    801F
-27    801F              clear:
-28    801F C5               push bc
-29    8020 D5               push de
-30    8021 E5               push hl
-31    8022 21 00 40         ld hl,$4000     ; HL = start of screen bitmap
-32    8025 11 01 40         ld de,$4001     ; DE = HL + 1
-33    8028 01 FF 17         ld bc,$17FF     ; BC = length of screen bitmap ($4000 - $57FF)
-34    802B 36 00            ld (hl),0       ; clear
-35    802D ED B0            ldir            ; LDI while BC>0, LDI: (DE)=(HL), DE++, HL++, BC--
-36    802F E1               pop hl
-37    8030 D1               pop de
-38    8031 C1               pop bc
-39    8032 C9               ret
-40    8033
-41    8033                  endmodule
-42    8033
-43    8033
-44    8033                  savesna "adams.sna",start
-45    8033
+ 3    0000                  include "screen_lib.asm"
+# file opened: screen_lib.asm
+ 1+   0000 ~            /*
+ 2+   0000 ~              screen_lib
+ 3+   0000 ~              Contains helper procedures for screen operations.
+ 4+   0000 ~            */
+ 5+   0000
+ 6+   0000                  module screen
+ 7+   0000
+ 8+   0000              ; clears whole screen with 0 value
+ 9+   0000              clear:
+10+   0000 C5               push bc
+11+   0001 D5               push de
+12+   0002 E5               push hl
+13+   0003 21 00 40         ld hl,$4000     ; HL = start of screen bitmap
+14+   0006 11 01 40         ld de,$4001     ; DE = HL + 1
+15+   0009 01 FF 17         ld bc,$17FF     ; BC = length of screen bitmap ($4000 - $57FF)
+16+   000C 36 00            ld (hl),0       ; clear
+17+   000E ED B0            ldir            ; LDI while BC>0, LDI: (DE)=(HL), DE++, HL++, BC--
+18+   0010 E1               pop hl
+19+   0011 D1               pop de
+20+   0012 C1               pop bc
+21+   0013 C9               ret
+22+   0014
+23+   0014                  endmodule
+24+   0014
+# file closed: screen_lib.asm
+ 4    0014
+ 5    0014              ; const
+ 6    0014              ENTER = $0D
+ 7    0014
+ 8    0014                  org $8000
+ 9    8000 C3 10 80         jp start
+10    8003
+11    8003              data:
+12    8003 48 65 6C 6C      db "Hello World!",ENTER
+12    8007 6F 20 57 6F
+12    800B 72 6C 64 21
+12    800F 0D
+13    8010              DATA_LENGTH = $ - data
+14    8010
+15    8010              start:
+16    8010 CD 00 00         call screen.clear
+17    8013 21 03 80         ld hl,data
+18    8016 06 0D            ld b,DATA_LENGTH
+19    8018              print_loop:
+20    8018 7E               ld a,(hl)
+21    8019 D7               rst $10
+22    801A 23               inc hl
+23    801B 10 FB            djnz print_loop
+24    801D C9               ret
+25    801E
+26    801E                  savesna "adams.sna",start
+27    801E
 # file closed: adams.asm
