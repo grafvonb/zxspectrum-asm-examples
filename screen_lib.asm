@@ -1,5 +1,13 @@
 ; screen_lib
-; contains helper procedures for screen operations.
+; contains helper procedures for screen operations
+; screen addresses
+; $4000 : top third
+; $4800 : middle
+; $4000 : bottom
+; counter
+; $07FF : one third
+; $0FFF : two thirds
+; $17FF ; whole screen
 ; (1) Machinencode-Programme für den ZX Spectrum, Davie Laine
 ; (2) Advanced Spectrum Machine Language, David Webb
 
@@ -26,16 +34,16 @@ get_loc:
     ret
 
 ; clears whole screen with 0 value
-; from (1), page 56
-; 
+; from (1), page 56 and (2) page 7
 clear:
     push de
     push bc
     push hl
-    ld hl,$4000     ; HL = start of screen bitmap
-    ld de,$4001     ; DE = HL + 1
+    ld hl,$4000     ; HL = start of screen bitmap      
+    ld d,h          ; DE = HL + 1, probably better than ld de,$4001
+    ld e,1
     ld bc,$17FF     ; BC = length of screen bitmap ($4000 - $57FF)
-    ld (hl),0       ; clear
+    ld (hl),l       ; (since l=0) clear, faster and occupies less memory than ld (hl),0
     ldir            ; LDI while BC>0, LDI: (DE)=(HL), DE++, HL++, BC--
     pop hl
     pop bc

@@ -29,7 +29,9 @@ print_loop:
     ld (hl),%10000001
     ld bc,$0B05
     call screen.get_loc
-    ld (hl),$FF
+    ld ($5C84),hl
+    ld a,$45
+    rst $10
 
     // call screen.clear
     ret

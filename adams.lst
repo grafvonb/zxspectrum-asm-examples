@@ -81,11 +81,13 @@
 29    804B 36 81            ld (hl),%10000001
 30    804D 01 05 0B         ld bc,$0B05
 31    8050 CD 00 80         call screen.get_loc
-32    8053 36 FF            ld (hl),$FF
-33    8055
-34    8055                  // call screen.clear
-35    8055 C9               ret
-36    8056
-37    8056                  savesna "adams.sna",start
-38    8056
+32    8053 22 84 5C         ld ($5C84),hl
+33    8056 3E 45            ld a,$45
+34    8058 D7               rst $10
+35    8059
+36    8059                  // call screen.clear
+37    8059 C9               ret
+38    805A
+39    805A                  savesna "adams.sna",start
+40    805A
 # file closed: adams.asm
