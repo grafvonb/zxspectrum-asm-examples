@@ -1,58 +1,91 @@
 # file opened: adams.asm
  1    0000                  device	zxspectrum48
  2    0000
- 3    0000                  include "screen_lib.asm"
+ 3    0000              ; const
+ 4    0000              ENTER = $0D
+ 5    0000
+ 6    0000                  org $8000
+ 7    8000                  include "screen_lib.asm"
 # file opened: screen_lib.asm
- 1+   0000 ~            /*
- 2+   0000 ~              screen_lib
- 3+   0000 ~              Contains helper procedures for screen operations.
- 4+   0000 ~            */
- 5+   0000
- 6+   0000                  module screen
- 7+   0000
- 8+   0000              ; clears whole screen with 0 value
- 9+   0000              clear:
-10+   0000 C5               push bc
-11+   0001 D5               push de
-12+   0002 E5               push hl
-13+   0003 21 00 40         ld hl,$4000     ; HL = start of screen bitmap
-14+   0006 11 01 40         ld de,$4001     ; DE = HL + 1
-15+   0009 01 FF 17         ld bc,$17FF     ; BC = length of screen bitmap ($4000 - $57FF)
-16+   000C 36 00            ld (hl),0       ; clear
-17+   000E ED B0            ldir            ; LDI while BC>0, LDI: (DE)=(HL), DE++, HL++, BC--
-18+   0010 E1               pop hl
-19+   0011 D1               pop de
-20+   0012 C1               pop bc
-21+   0013 C9               ret
-22+   0014
-23+   0014                  endmodule
-24+   0014
+ 1+   8000              ; screen_lib
+ 2+   8000              ; contains helper procedures for screen operations.
+ 3+   8000              ; (1) Machinencode-Programme für den ZX Spectrum, Davie Laine
+ 4+   8000              ; (2) Advanced Spectrum Machine Language, David Webb
+ 5+   8000
+ 6+   8000                  module screen
+ 7+   8000
+ 8+   8000              ; calculates address of a cell
+ 9+   8000              ; from (2), page 6
+10+   8000              ; in: B = line (0-23)
+11+   8000              ; in: C = column (0-31)
+12+   8000              ; out: HL = address in display
+13+   8000              ; preserved: BC, DE
+14+   8000              get_loc:
+15+   8000 78               ld a,b
+16+   8001 E6 F8            and $F8         ; %11111000
+17+   8003 C6 40            add $40         ; %01000000
+18+   8005 67               ld h,a
+19+   8006 78               ld a,b
+20+   8007 E6 07            and $7          ; %00000111
+21+   8009 0F               rrca
+22+   800A 0F               rrca
+23+   800B 0F               rrca
+24+   800C 81               add a,c
+25+   800D 6F               ld l,a
+26+   800E C9               ret
+27+   800F
+28+   800F              ; clears whole screen with 0 value
+29+   800F              ; from (1), page 56
+30+   800F              ;
+31+   800F              clear:
+32+   800F D5               push de
+33+   8010 C5               push bc
+34+   8011 E5               push hl
+35+   8012 21 00 40         ld hl,$4000     ; HL = start of screen bitmap
+36+   8015 11 01 40         ld de,$4001     ; DE = HL + 1
+37+   8018 01 FF 17         ld bc,$17FF     ; BC = length of screen bitmap ($4000 - $57FF)
+38+   801B 36 00            ld (hl),0       ; clear
+39+   801D ED B0            ldir            ; LDI while BC>0, LDI: (DE)=(HL), DE++, HL++, BC--
+40+   801F E1               pop hl
+41+   8020 C1               pop bc
+42+   8021 D1               pop de
+43+   8022 C9               ret
+44+   8023
+45+   8023                  endmodule
+46+   8023
 # file closed: screen_lib.asm
- 4    0014
- 5    0014              ; const
- 6    0014              ENTER = $0D
- 7    0014
- 8    0014                  org $8000
- 9    8000 C3 10 80         jp start
-10    8003
-11    8003              data:
-12    8003 48 65 6C 6C      db "Hello World!",ENTER
-12    8007 6F 20 57 6F
-12    800B 72 6C 64 21
-12    800F 0D
-13    8010              DATA_LENGTH = $ - data
-14    8010
-15    8010              start:
-16    8010 CD 00 00         call screen.clear
-17    8013 21 03 80         ld hl,data
-18    8016 06 0D            ld b,DATA_LENGTH
-19    8018              print_loop:
-20    8018 7E               ld a,(hl)
-21    8019 D7               rst $10
-22    801A 23               inc hl
-23    801B 10 FB            djnz print_loop
-24    801D C9               ret
-25    801E
-26    801E                  savesna "adams.sna",start
-27    801E
+ 8    8023
+ 9    8023 C3 33 80         jp start
+10    8026
+11    8026              data:
+12    8026 48 65 6C 6C      db "Hello World!",ENTER
+12    802A 6F 20 57 6F
+12    802E 72 6C 64 21
+12    8032 0D
+13    8033              DATA_LENGTH = $ - data
+14    8033
+15    8033              start:
+16    8033 CD 0F 80         call screen.clear
+17    8036 21 00 40         ld hl,$4000
+18    8039 36 FF            ld (hl),$FF
+19    803B 21 26 80         ld hl,data
+20    803E 06 0D            ld b,DATA_LENGTH
+21    8040              print_loop:
+22    8040 7E               ld a,(hl)
+23    8041 D7               rst $10
+24    8042 23               inc hl
+25    8043 10 FB            djnz print_loop
+26    8045
+27    8045 01 05 0A         ld bc,$0A05
+28    8048 CD 00 80         call screen.get_loc
+29    804B 36 81            ld (hl),%10000001
+30    804D 01 05 0B         ld bc,$0B05
+31    8050 CD 00 80         call screen.get_loc
+32    8053 36 FF            ld (hl),$FF
+33    8055
+34    8055                  // call screen.clear
+35    8055 C9               ret
+36    8056
+37    8056                  savesna "adams.sna",start
+38    8056
 # file closed: adams.asm
