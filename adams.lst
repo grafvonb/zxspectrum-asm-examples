@@ -1,93 +1,439 @@
 # file opened: adams.asm
- 1    0000                  device	zxspectrum48
- 2    0000
- 3    0000              ; const
- 4    0000              ENTER = $0D
- 5    0000
- 6    0000                  org $8000
- 7    8000                  include "screen_lib.asm"
+  1   0000                  device	zxspectrum48
+  2   0000
+  3   0000              ; const
+  4   0000              ENTER = $0D
+  5   0000
+  6   0000                  org $8000
+  7   8000                  include "screen_lib.asm"
 # file opened: screen_lib.asm
- 1+   8000              ; screen_lib
- 2+   8000              ; contains helper procedures for screen operations.
- 3+   8000              ; (1) Machinencode-Programme für den ZX Spectrum, Davie Laine
- 4+   8000              ; (2) Advanced Spectrum Machine Language, David Webb
- 5+   8000
- 6+   8000                  module screen
- 7+   8000
- 8+   8000              ; calculates address of a cell
- 9+   8000              ; from (2), page 6
-10+   8000              ; in: B = line (0-23)
-11+   8000              ; in: C = column (0-31)
-12+   8000              ; out: HL = address in display
-13+   8000              ; preserved: BC, DE
-14+   8000              get_loc:
-15+   8000 78               ld a,b
-16+   8001 E6 F8            and $F8         ; %11111000
-17+   8003 C6 40            add $40         ; %01000000
-18+   8005 67               ld h,a
-19+   8006 78               ld a,b
-20+   8007 E6 07            and $7          ; %00000111
-21+   8009 0F               rrca
-22+   800A 0F               rrca
-23+   800B 0F               rrca
-24+   800C 81               add a,c
-25+   800D 6F               ld l,a
-26+   800E C9               ret
-27+   800F
-28+   800F              ; clears whole screen with 0 value
-29+   800F              ; from (1), page 56
-30+   800F              ;
-31+   800F              clear:
-32+   800F D5               push de
-33+   8010 C5               push bc
-34+   8011 E5               push hl
-35+   8012 21 00 40         ld hl,$4000     ; HL = start of screen bitmap
-36+   8015 11 01 40         ld de,$4001     ; DE = HL + 1
-37+   8018 01 FF 17         ld bc,$17FF     ; BC = length of screen bitmap ($4000 - $57FF)
-38+   801B 36 00            ld (hl),0       ; clear
-39+   801D ED B0            ldir            ; LDI while BC>0, LDI: (DE)=(HL), DE++, HL++, BC--
-40+   801F E1               pop hl
-41+   8020 C1               pop bc
-42+   8021 D1               pop de
-43+   8022 C9               ret
-44+   8023
-45+   8023                  endmodule
-46+   8023
+  1+  8000              ; screen_lib
+  2+  8000              ; contains helper procedures for screen operations
+  3+  8000              ; screen addresses
+  4+  8000              ; $4000 : top third
+  5+  8000              ; $4800 : middle
+  6+  8000              ; $4000 : bottom
+  7+  8000              ; counter
+  8+  8000              ; $07FF : one third
+  9+  8000              ; $0FFF : two thirds
+ 10+  8000              ; $17FF ; whole screen
+ 11+  8000              ; (1) Machinencode-Programme für den ZX Spectrum, Davie Laine
+ 12+  8000              ; (2) Advanced Spectrum Machine Language, David Webb
+ 13+  8000
+ 14+  8000                  module screen
+ 15+  8000
+ 16+  8000              ; calculates address of a cell
+ 17+  8000              ; from (2), page 6
+ 18+  8000              ; in: B = line (0-23)
+ 19+  8000              ; in: C = column (0-31)
+ 20+  8000              ; out: HL = address in display
+ 21+  8000              ; preserved: BC, DE
+ 22+  8000              get_loc:
+ 23+  8000 78               ld a,b
+ 24+  8001 E6 F8            and $F8         ; %11111000
+ 25+  8003 C6 40            add $40         ; %01000000
+ 26+  8005 67               ld h,a
+ 27+  8006 78               ld a,b
+ 28+  8007 E6 07            and $7          ; %00000111
+ 29+  8009 0F               rrca
+ 30+  800A 0F               rrca
+ 31+  800B 0F               rrca
+ 32+  800C 81               add a,c
+ 33+  800D 6F               ld l,a
+ 34+  800E C9               ret
+ 35+  800F
+ 36+  800F              ; clears whole screen with 0 value
+ 37+  800F              ; from (1), page 56 and (2) page 7
+ 38+  800F              clear:
+ 39+  800F D5               push de
+ 40+  8010 C5               push bc
+ 41+  8011 E5               push hl
+ 42+  8012 21 00 40         ld hl,$4000     ; HL = start of screen bitmap
+ 43+  8015 54               ld d,h          ; DE = HL + 1, probably better than ld de,$4001
+ 44+  8016 1E 01            ld e,1
+ 45+  8018 01 FF 17         ld bc,$17FF     ; BC = length of screen bitmap ($4000 - $57FF)
+ 46+  801B 75               ld (hl),l       ; (since l=0) clear, faster and occupies less memory than ld (hl),0
+ 47+  801C ED B0            ldir            ; LDI while BC>0, LDI: (DE)=(HL), DE++, HL++, BC--
+ 48+  801E E1               pop hl
+ 49+  801F C1               pop bc
+ 50+  8020 D1               pop de
+ 51+  8021 C9               ret
+ 52+  8022
+ 53+  8022                  endmodule
+ 54+  8022
 # file closed: screen_lib.asm
- 8    8023
- 9    8023 C3 33 80         jp start
-10    8026
-11    8026              data:
-12    8026 48 65 6C 6C      db "Hello World!",ENTER
-12    802A 6F 20 57 6F
-12    802E 72 6C 64 21
-12    8032 0D
-13    8033              DATA_LENGTH = $ - data
-14    8033
-15    8033              start:
-16    8033 CD 0F 80         call screen.clear
-17    8036 21 00 40         ld hl,$4000
-18    8039 36 FF            ld (hl),$FF
-19    803B 21 26 80         ld hl,data
-20    803E 06 0D            ld b,DATA_LENGTH
-21    8040              print_loop:
-22    8040 7E               ld a,(hl)
-23    8041 D7               rst $10
-24    8042 23               inc hl
-25    8043 10 FB            djnz print_loop
-26    8045
-27    8045 01 05 0A         ld bc,$0A05
-28    8048 CD 00 80         call screen.get_loc
-29    804B 36 81            ld (hl),%10000001
-30    804D 01 05 0B         ld bc,$0B05
-31    8050 CD 00 80         call screen.get_loc
-32    8053 22 84 5C         ld ($5C84),hl
-33    8056 3E 45            ld a,$45
-34    8058 D7               rst $10
-35    8059
-36    8059                  // call screen.clear
-37    8059 C9               ret
-38    805A
-39    805A                  savesna "adams.sna",start
-40    805A
+  8   8022                  include "screen_lib_ut.asm"
+# file opened: screen_lib_ut.asm
+  1+  8022                  include "unit_tests.inc"
+# file opened: unit_tests.inc
+  1++ 8022              ;--------------------------------------------------------
+  2++ 8022              ; unit_tests.inc
+  3++ 8022              ;
+  4++ 8022              ; Contains all macros used for unit testing.
+  5++ 8022              ; For sjasmplus.
+  6++ 8022              ;--------------------------------------------------------
+  7++ 8022
+  8++ 8022                  ; -----------------------------------------------------------
+  9++ 8022                  ; Code for sjasmplus
+ 10++ 8022
+ 11++ 8022                  MACRO UNITTEST_INITIALIZE
+ 12++ 8022 ~
+ 13++ 8022 ~                ; Called to call each unit test.
+ 14++ 8022 ~            @UNITTEST_TEST_WRAPPER:
+ 15++ 8022 ~                    di
+ 16++ 8022 ~                    ld sp,UNITTEST_STACK
+ 17++ 8022 ~            @UNITTEST_CALL_ADDR:
+ 18++ 8022 ~                    call 0x0000 ; Will be changed by the z80 unit tests.
+ 19++ 8022 ~                    nop
+ 20++ 8022 ~
+ 21++ 8022 ~            @UNITTEST_TEST_READY_SUCCESS:
+ 22++ 8022 ~                    jr UNITTEST_TEST_READY_SUCCESS	; A breakpoint will be set here.
+ 23++ 8022 ~
+ 24++ 8022 ~            ; Stack
+ 25++ 8022 ~            @UNITTEST_STACK_BOTTOM:
+ 26++ 8022 ~                    defw 0
+ 27++ 8022 ~                    defs 2*50	; Stack depth of 50 should be enough
+ 28++ 8022 ~            @UNITTEST_STACK:
+ 29++ 8022 ~                    defw 0
+ 30++ 8022 ~
+ 31++ 8022 ~                ; The unit test initialization. Provided by the user.
+ 32++ 8022 ~            @UNITTEST_START:
+ 33++ 8022 ~                    ; Disable interrupts
+ 34++ 8022 ~                    di
+ 35++ 8022 ~                    ; Flow through.
+ 36++ 8022 ~                    ; Directly after the UNITTEST_INITIALIZE macro the user
+ 37++ 8022 ~                    ; should put his test initialization code.
+ 38++ 8022 ~                    ; Note: the stack pointer does not need to be set up.
+ 39++ 8022 ~
+ 40++ 8022                  ENDM
+ 41++ 8022
+ 42++ 8022
+ 43++ 8022                  ; Macro that must be used at the end of the test case (instead of a ret).
+ 44++ 8022                  MACRO TC_END
+ 45++ 8022 ~                    jp UNITTEST_TEST_READY_SUCCESS
+ 46++ 8022                  ENDM
+ 47++ 8022
+ 48++ 8022
+ 49++ 8022                  ; Tests a memory address for a specific byte value.
+ 50++ 8022                  MACRO TEST_MEMORY_BYTE addr?, value?
+ 51++ 8022 ~                    push hl
+ 52++ 8022 ~                    ld hl,addr?
+ 53++ 8022 ~                    ld l,(hl)
+ 54++ 8022 ~                    ld h,value?
+ 55++ 8022 ~                    nop ; ASSERTION L == H
+ 56++ 8022 ~                    pop hl
+ 57++ 8022                  ENDM
+ 58++ 8022
+ 59++ 8022                  ; Tests a memory address for a specific word value.
+ 60++ 8022                  ; If the test fails the '(addr)' can be found in DE.
+ 61++ 8022                  MACRO TEST_MEMORY_WORD addr?, value?
+ 62++ 8022 ~                    push hl, de
+ 63++ 8022 ~                    ld hl,addr?
+ 64++ 8022 ~                    ld e,(hl)
+ 65++ 8022 ~                    inc hl
+ 66++ 8022 ~                    ld d,(hl)
+ 67++ 8022 ~                    ld hl,value?
+ 68++ 8022 ~                    nop ; ASSERTION DE == HL
+ 69++ 8022 ~                    pop de, hl
+ 70++ 8022                  ENDM
+ 71++ 8022
+ 72++ 8022                  ; Creates a failure when reached.
+ 73++ 8022                  MACRO TEST_FAIL
+ 74++ 8022 ~                    nop ; ASSERTION false
+ 75++ 8022                  ENDM
+ 76++ 8022
+ 77++ 8022
+ 78++ 8022
+ 79++ 8022                  ; Compares 2 memory areas containing null terminated strings.
+ 80++ 8022                  ; addr1 = the first string
+ 81++ 8022                  ; addr2 = the second string
+ 82++ 8022                  MACRO TEST_STRING_PTR addr1?, addr2?
+ 83++ 8022 ~                    push af
+ 84++ 8022 ~                    push hl
+ 85++ 8022 ~                    push de
+ 86++ 8022 ~                    ld de,addr2?
+ 87++ 8022 ~                    ld hl,addr1?
+ 88++ 8022 ~            .loop:
+ 89++ 8022 ~                    ld a,(de)
+ 90++ 8022 ~                    ; Check for null termination
+ 91++ 8022 ~                    cp (hl)
+ 92++ 8022 ~                    jr nz,.not_equal
+ 93++ 8022 ~                    or a
+ 94++ 8022 ~                    jr z,.null_found
+ 95++ 8022 ~                    inc de
+ 96++ 8022 ~                    inc hl
+ 97++ 8022 ~                    jr .loop
+ 98++ 8022 ~
+ 99++ 8022 ~            .not_equal:
+100++ 8022 ~                    ; Strings are not equal
+101++ 8022 ~                    pop de
+102++ 8022 ~                    pop hl
+103++ 8022 ~                    pop af
+104++ 8022 ~                    nop ; ASSERTION false
+105++ 8022 ~                    jr .end
+106++ 8022 ~
+107++ 8022 ~            .null_found:
+108++ 8022 ~                    pop de
+109++ 8022 ~                    pop hl
+110++ 8022 ~                    pop af
+111++ 8022 ~            .end:
+112++ 8022                  ENDM
+113++ 8022
+114++ 8022
+115++ 8022                  ; Tests a memory address for a specific string.
+116++ 8022                  ; addr = the tested string
+117++ 8022                  ; string = the compared string, e.g. "STRING"
+118++ 8022                  ; term0 = If 0 it is also tested that the string (addr) is null terminated
+119++ 8022                  MACRO TEST_STRING addr?, string?, term0?
+120++ 8022 ~                    push af
+121++ 8022 ~                    push hl
+122++ 8022 ~                    push de
+123++ 8022 ~                    ld de,.comp_string
+124++ 8022 ~                    ld hl,addr?
+125++ 8022 ~            .loop:
+126++ 8022 ~                    ld a,(de)
+127++ 8022 ~                    ; Check for null termination
+128++ 8022 ~                    or a
+129++ 8022 ~                    jr z,.null_found
+130++ 8022 ~                    cp (hl)
+131++ 8022 ~                    inc de
+132++ 8022 ~                    inc hl
+133++ 8022 ~                    jr z,.loop
+134++ 8022 ~
+135++ 8022 ~            .not_equal:
+136++ 8022 ~                    ; Strings are not equal
+137++ 8022 ~                    pop de
+138++ 8022 ~                    pop hl
+139++ 8022 ~                    pop af
+140++ 8022 ~                    nop ; ASSERTION false
+141++ 8022 ~                    jr .end
+142++ 8022 ~
+143++ 8022 ~            .comp_string:
+144++ 8022 ~                    defb string?, 0
+145++ 8022 ~
+146++ 8022 ~            .null_found:
+147++ 8022 ~                    ; We are at the end of the compare string.
+148++ 8022 ~                    ; Check if null termination should be compared with the tested string.
+149++ 8022 ~                  IF term0? == 0
+150++ 8022 ~                    cp (hl)
+151++ 8022 ~                    jr nz,.not_equal
+152++ 8022 ~                  ENDIF
+153++ 8022 ~
+154++ 8022 ~                    pop de
+155++ 8022 ~                    pop hl
+156++ 8022 ~                    pop af
+157++ 8022 ~            .end:
+158++ 8022                  ENDM
+159++ 8022
+160++ 8022
+161++ 8022                  ; Tests a memory area on equality.
+162++ 8022                  ; addr1 = the tested memory area
+163++ 8022                  ; addr2 = the memory area to compare to
+164++ 8022                  ; count = the number of elements to compare
+165++ 8022                  MACRO TEST_MEM_CMP addr1?, addr2?, count?
+166++ 8022 ~                    push af
+167++ 8022 ~                    push hl
+168++ 8022 ~                    push de
+169++ 8022 ~                    push bc
+170++ 8022 ~                    ld de,addr2?
+171++ 8022 ~                    ld hl,addr1?
+172++ 8022 ~                    ld bc,count?
+173++ 8022 ~            .loop:
+174++ 8022 ~                    ld a,(de)
+175++ 8022 ~                    ; Compare
+176++ 8022 ~                    cpi      ; cp (hl++); dec bc
+177++ 8022 ~                    jr nz,.not_equal
+178++ 8022 ~                    inc de
+179++ 8022 ~                    jp pe,.loop
+180++ 8022 ~
+181++ 8022 ~                    ; Memory is equal
+182++ 8022 ~                    pop bc
+183++ 8022 ~                    pop de
+184++ 8022 ~                    pop hl
+185++ 8022 ~                    pop af
+186++ 8022 ~                    jr .end
+187++ 8022 ~
+188++ 8022 ~            .not_equal:
+189++ 8022 ~                    ; Memory areas are not equal
+190++ 8022 ~                    pop bc
+191++ 8022 ~                    pop de
+192++ 8022 ~                    pop hl
+193++ 8022 ~                    pop af
+194++ 8022 ~                    nop ; ASSERTION false
+195++ 8022 ~                    jr .end
+196++ 8022 ~            .end:
+197++ 8022                  ENDM
+198++ 8022
+199++ 8022                  ; Initializes the registers with default values.
+200++ 8022                  ; Use before the tested function is called.
+201++ 8022                  ; After the call the TEST_UNCHANGED_XX tests can be used
+202++ 8022                  ; to check if the register was changed.
+203++ 8022                  MACRO DEFAULT_REGS
+204++ 8022 ~                    ld a,0xAA
+205++ 8022 ~                    ld bc,0xBBCC
+206++ 8022 ~                    ld de,0xDDEE
+207++ 8022 ~                    ld hl,0x8899
+208++ 8022                  ENDM
+209++ 8022
+210++ 8022                  MACRO TEST_UNCHANGED_BC
+211++ 8022 ~                    nop ; ASSERTION BC == 0xBBCC
+212++ 8022                  ENDM
+213++ 8022
+214++ 8022                  MACRO TEST_UNCHANGED_DE
+215++ 8022 ~                    nop ; ASSERTION DE == 0xDDEE
+216++ 8022                  ENDM
+217++ 8022
+218++ 8022                  MACRO TEST_UNCHANGED_HL
+219++ 8022 ~                    nop ; ASSERTION HL == 0x8899
+220++ 8022                  ENDM
+221++ 8022
+222++ 8022                  MACRO TEST_UNCHANGED_BC_DE
+223++ 8022 ~                    TEST_UNCHANGED_BC
+224++ 8022 ~                    TEST_UNCHANGED_DE
+225++ 8022                  ENDM
+226++ 8022
+227++ 8022                  MACRO TEST_UNCHANGED_BC_DE_HL
+228++ 8022 ~                    TEST_UNCHANGED_BC_DE
+229++ 8022 ~                    TEST_UNCHANGED_HL
+230++ 8022                  ENDM
+231++ 8022
+232++ 8022                  MACRO TEST_UNCHANGED_A
+233++ 8022 ~                    nop ; TEST ASSERTION A == 0xAA
+234++ 8022                  ENDM
+235++ 8022
+236++ 8022                  MACRO TEST_UNCHANGED_B
+237++ 8022 ~                    nop ; TEST ASSERTION B == 0xBB
+238++ 8022                  ENDM
+239++ 8022
+240++ 8022                  MACRO TEST_UNCHANGED_C
+241++ 8022 ~                    nop ; TEST ASSERTION C == 0xCC
+242++ 8022                  ENDM
+243++ 8022
+244++ 8022                  MACRO TEST_UNCHANGED_D
+245++ 8022 ~                    nop ; TEST ASSERTION D == 0xDD
+246++ 8022                  ENDM
+247++ 8022
+248++ 8022                  MACRO TEST_UNCHANGED_E
+249++ 8022 ~                    nop ; TEST ASSERTION E == 0xEE
+250++ 8022                  ENDM
+251++ 8022
+252++ 8022                  MACRO TEST_UNCHANGED_H
+253++ 8022 ~                    nop ; TEST ASSERTION H == 0x88
+254++ 8022                  ENDM
+255++ 8022
+256++ 8022                  MACRO TEST_UNCHANGED_L
+257++ 8022 ~                    nop ; TEST ASSERTION L == 0x99
+258++ 8022                  ENDM
+259++ 8022
+260++ 8022
+261++ 8022                  ; Macro to test flags for Z.
+262++ 8022                  ; Testcase fails for NZ.
+263++ 8022                  MACRO TEST_FLAG_Z
+264++ 8022 ~                    nop ; TEST ASSERTION F & 0x40
+265++ 8022                  ENDM
+266++ 8022
+267++ 8022
+268++ 8022                  ; Macro to test flags for NZ.
+269++ 8022                  ; Testcase fails for Z.
+270++ 8022                  MACRO TEST_FLAG_NZ
+271++ 8022 ~                    nop ; TEST ASSERTION (F & 0x40) == 0
+272++ 8022                  ENDM
+273++ 8022
+274++ 8022
+275++ 8022                  ; This macro uses all registers, also the shadow registers.
+276++ 8022                  MACRO USE_ALL_REGS
+277++ 8022 ~                    ld a,0xCD
+278++ 8022 ~                    ld bc,0xBBCC
+279++ 8022 ~                    ld de,0xDDEE
+280++ 8022 ~                    ld hl,0xFF11
+281++ 8022 ~                    ld ix,0x7788
+282++ 8022 ~                    ld iy,0x99AA
+283++ 8022 ~                    exx
+284++ 8022 ~                    ld a,0xDC
+285++ 8022 ~                    ld bc,0x1122
+286++ 8022 ~                    ld de,0x3344
+287++ 8022 ~                    ld hl,0x5566
+288++ 8022 ~                    exx
+289++ 8022                  ENDM
+290++ 8022
+# file closed: unit_tests.inc
+  2+  8022
+  3+  8022                  UNITTEST_INITIALIZE
+  3+  8022             >
+  3+  8022             >    ; Called to call each unit test.
+  3+  8022             >@UNITTEST_TEST_WRAPPER:
+  3+  8022 F3          >        di
+  3+  8023 31 92 80    >        ld sp,UNITTEST_STACK
+  3+  8026             >@UNITTEST_CALL_ADDR:
+  3+  8026 CD 00 00    >        call 0x0000 ; Will be changed by the z80 unit tests.
+  3+  8029 00          >        nop
+  3+  802A             >
+  3+  802A             >@UNITTEST_TEST_READY_SUCCESS:
+  3+  802A 18 FE       >        jr UNITTEST_TEST_READY_SUCCESS	; A breakpoint will be set here.
+  3+  802C             >
+  3+  802C             >; Stack
+  3+  802C             >@UNITTEST_STACK_BOTTOM:
+  3+  802C 00 00       >        defw 0
+  3+  802E 00 00 00... >        defs 2*50	; Stack depth of 50 should be enough
+  3+  8092             >@UNITTEST_STACK:
+  3+  8092 00 00       >        defw 0
+  3+  8094             >
+  3+  8094             >    ; The unit test initialization. Provided by the user.
+  3+  8094             >@UNITTEST_START:
+  3+  8094             >        ; Disable interrupts
+  3+  8094 F3          >        di
+  3+  8095             >        ; Flow through.
+  3+  8095             >        ; Directly after the UNITTEST_INITIALIZE macro the user
+  3+  8095             >        ; should put his test initialization code.
+  3+  8095             >        ; Note: the stack pointer does not need to be set up.
+  3+  8095             >
+  4+  8095                  ; initialize
+  5+  8095 C9               ret
+  6+  8096
+  7+  8096                  module TestSuite_ScreenLib
+  8+  8096
+  9+  8096              UT_test1:
+ 10+  8096 21 76 89         ld  hl,$8976
+ 11+  8099 00               nop ; ASSERTION HL == 6
+ 12+  809A                TC_END
+ 12+  809A C3 2A 80    >        jp UNITTEST_TEST_READY_SUCCESS
+ 13+  809D
+ 14+  809D                  endmodule
+# file closed: screen_lib_ut.asm
+  9   809D
+ 10   809D C3 AD 80         jp start
+ 11   80A0
+ 12   80A0              data:
+ 13   80A0 48 65 6C 6C      db "Hello World!",ENTER
+ 13   80A4 6F 20 57 6F
+ 13   80A8 72 6C 64 21
+ 13   80AC 0D
+ 14   80AD              DATA_LENGTH = $ - data
+ 15   80AD
+ 16   80AD              start:
+ 17   80AD CD 0F 80         call screen.clear
+ 18   80B0 21 00 40         ld hl,$4000
+ 19   80B3 36 FF            ld (hl),$FF
+ 20   80B5 21 A0 80         ld hl,data
+ 21   80B8 06 0D            ld b,DATA_LENGTH
+ 22   80BA              print_loop:
+ 23   80BA 7E               ld a,(hl)
+ 24   80BB D7               rst $10
+ 25   80BC 23               inc hl
+ 26   80BD 10 FB            djnz print_loop
+ 27   80BF
+ 28   80BF 01 05 0A         ld bc,$0A05
+ 29   80C2 CD 00 80         call screen.get_loc
+ 30   80C5 36 81            ld (hl),%10000001
+ 31   80C7 01 05 0B         ld bc,$0B05
+ 32   80CA CD 00 80         call screen.get_loc
+ 33   80CD 22 84 5C         ld ($5C84),hl
+ 34   80D0 3E 45            ld a,$45
+ 35   80D2 D7               rst $10
+ 36   80D3
+ 37   80D3                  // call screen.clear
+ 38   80D3 C9               ret
+ 39   80D4
+ 40   80D4                  savesna "adams.sna",start
+ 41   80D4
 # file closed: adams.asm

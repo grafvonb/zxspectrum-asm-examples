@@ -1,0 +1,71 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "dezog",
+      "request": "launch",
+      "name": "dezog ZX48K",
+      "remoteType": "zsim",
+      "zsim": {
+        "visualMemory": true,
+        "memoryModel": "ZX48K",
+        "ulaScreen": true,
+        "zxBorderWidth": 20,
+        "vsyncInterrupt": true,
+        "zxKeyboard": true,
+        "zxBeeper": true
+      },
+      "sjasmplus": [
+        {
+          "path": "adams.sld"
+        }
+      ],
+      "commandsAfterLaunch": [],
+      "history": {
+        "reverseDebugInstructionCount": 1000000,
+        "spotCount": 10,
+        "codeCoverageEnabled": true
+      },
+      "startAutomatically": false,
+      "rootFolder": "${workspaceFolder}",
+      "load": "adams.sna"
+    },
+    {
+      "type": "dezog",
+      "request": "launch",
+      "name": "unit tests ZX48K",
+      "unitTests": true,
+      "remoteType": "zsim",
+      "zsim": {
+        "Z80N": true,
+        "visualMemory": true,
+        "memoryModel": "ZX48K",
+        "ulaScreen": true,
+        "zxBorderWidth": 20,
+        "vsyncInterrupt": true,
+        "zxKeyboard": true,
+        "zxBeeper": true
+      },
+      "sjasmplus": [
+        {
+          "path": "adams.sld"
+        }
+      ],
+      "commandsAfterLaunch": [],
+      "history": {
+        "reverseDebugInstructionCount": 1000000,
+        "spotCount": 10,
+        "codeCoverageEnabled": true
+      },
+      "startAutomatically": false,
+      "rootFolder": "${workspaceFolder}",
+      "load": "adams.sna",
+      "presentation": {
+        "hidden": true
+      }
+    }
+  ]
+}

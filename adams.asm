@@ -5,6 +5,7 @@ ENTER = $0D
 
     org $8000
     include "screen_lib.asm"
+    include "screen_lib_ut.asm"
 
     jp start
  
