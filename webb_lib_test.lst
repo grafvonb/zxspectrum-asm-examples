@@ -1,0 +1,288 @@
+# file opened: .\webb_lib_test.asm
+ 1    0000                  device	zxspectrum48
+ 2    0000
+ 3    0000                  org $8000
+ 4    8000                  include "screen_lib.asm"
+# file opened: .\screen_lib.asm
+ 1+   8000              ; screen_lib
+ 2+   8000              ; contains helper procedures for screen operations
+ 3+   8000              ; screen addresses
+ 4+   8000              ; $4000 : top third
+ 5+   8000              ; $4800 : middle
+ 6+   8000              ; $4000 : bottom
+ 7+   8000              ; counter
+ 8+   8000              ; $07FF : one third
+ 9+   8000              ; $0FFF : two thirds
+10+   8000              ; $17FF ; whole screen
+11+   8000              ; (1) Machinencode-Programme für den ZX Spectrum, Davie Laine
+12+   8000              ; (2) Advanced Spectrum Machine Language, David Webb
+13+   8000
+14+   8000                  module screen
+15+   8000
+16+   8000              ; calculates address of a cell
+17+   8000              ; from (2), page 6
+18+   8000              ; in: B = line (0-23)
+19+   8000              ; in: C = column (0-31)
+20+   8000              ; out: HL = address in display
+21+   8000              ; preserved: BC, DE
+22+   8000              get_loc:
+23+   8000 78               ld a,b
+24+   8001 E6 F8            and $F8         ; %11111000
+25+   8003 C6 40            add $40         ; %01000000
+26+   8005 67               ld h,a
+27+   8006 78               ld a,b
+28+   8007 E6 07            and $7          ; %00000111
+29+   8009 0F               rrca
+30+   800A 0F               rrca
+31+   800B 0F               rrca
+32+   800C 81               add a,c
+33+   800D 6F               ld l,a
+34+   800E C9               ret
+35+   800F
+36+   800F              ; clears whole screen with 0 value
+37+   800F              ; from (1), page 56 and (2) page 7
+38+   800F              clear:
+39+   800F D5               push de
+40+   8010 C5               push bc
+41+   8011 E5               push hl
+42+   8012 21 00 40         ld hl,$4000     ; HL = start of screen bitmap
+43+   8015 54               ld d,h          ; DE = HL + 1, probably better than ld de,$4001
+44+   8016 1E 01            ld e,1
+45+   8018 01 FF 17         ld bc,$17FF     ; BC = length of screen bitmap ($4000 - $57FF)
+46+   801B 75               ld (hl),l       ; (since l=0) clear, faster and occupies less memory than ld (hl),0
+47+   801C ED B0            ldir            ; LDI while BC>0, LDI: (DE)=(HL), DE++, HL++, BC--
+48+   801E E1               pop hl
+49+   801F C1               pop bc
+50+   8020 D1               pop de
+51+   8021 C9               ret
+52+   8022
+53+   8022                  endmodule
+54+   8022
+# file closed: .\screen_lib.asm
+ 5    8022                  include "webb_lib.asm"
+# file opened: .\webb_lib.asm
+ 1+   8022              ; (1) Super Charge Your Spectrum, David Webb
+ 2+   8022
+ 3+   8022                  include "consts_lib.asm"
+# file opened: .\consts_lib.asm
+ 1++  8022                  module consts
+ 2++  8022
+ 3++  8022              ; screen bitmap 256x192, 6kB
+ 4++  8022              SCREEN_BITMAP_RAM_START = $4000
+ 5++  8022              SCREEN_BITMAP_RAM_END = $57ff
+ 6++  8022
+ 7++  8022              ; screen color attributes 32x24, 768B
+ 8++  8022              SCREEN_COLOR_RAM_START = $5800
+ 9++  8022              SCREEN_COLOR_RAM_END = $5aff
+10++  8022
+11++  8022              ; printer buffer
+12++  8022              PRINTER_BUFFER = $5be0
+13++  8022
+14++  8022              TEST_23346 = $5b32
+15++  8022              TEST_23347 = $5b33
+16++  8022
+17++  8022              ENTER = $0D
+18++  8022
+19++  8022              ROM_FONT_ADDR_POINTER = $5C36 ; contains address of system fonts, standard is $3d00
+20++  8022              ROM_FONT_ADDR = $3d00
+21++  8022
+22++  8022                  endmodule
+# file closed: .\consts_lib.asm
+ 4+   8022
+ 5+   8022                  module webb
+ 6+   8022
+ 7+   8022              ; upws - up whole screen
+ 8+   8022              ; (1) page 45
+ 9+   8022              ; modifies: hl,de
+10+   8022              upws:
+11+   8022 21 00 40         ld      hl,consts.SCREEN_BITMAP_RAM_START       ; beginning of display RAM
+12+   8025 11 E0 5B         ld      de,consts.PRINTER_BUFFER                ; used to erase the contents of the last 32 bytes of the printer buffer
+13+   8028 36 FF            ld      (hl),$ff
+14+   802A              nxslice:
+15+   802A D5               push    de      ; destination
+16+   802B E5               push    hl      ; source
+17+   802C 3E 03            ld      a,3     ; three parts of the screen
+18+   802E 01 20 00         ld      bc,$20  ; counter
+19+   8031              nxthird:
+20+   8031 C5               push    bc      ; store the top 'slice' of the top line in the printer buffer
+21+   8032 E5               push    hl
+22+   8033 ED B0            ldir            ; do ldi while bc>0, ldi: (de)=(hl), de++, hl++, bc--
+23+   8035 D1               pop     de
+24+   8036 0E E0            ld      c,$e0   ; 7*32=224
+25+   8038 ED B0            ldir            ; next 7 lines (1-7) up into top 7 lines (0-6)
+26+   803A 06 07            ld      b,7
+27+   803C 09               add     hl,bc   ; find the first line of the next third of the screen
+28+   803D 3D               dec     a       ; repeat until all of the top slices have been scrolled up a line
+29+   803E C1               pop     bc
+30+   803F 20 F0            jr      nz,nxthird
+31+   8041 3A 32 5B         ld      a,(consts.TEST_23346)   ; test
+32+   8044 FE 01            cp      1           ; decide whether to
+33+   8046 38 10            jr      c,leavit    ; leave,
+34+   8048 20 07            jr      nz,fill     ; fill or
+35+   804A              roll:
+36+   804A 21 E0 5B         ld      hl,consts.PRINTER_BUFFER ; roll the top slice down into the bottom line
+37+   804D ED B0            ldir
+38+   804F 18 07            jr      leavit
+39+   8051              fill:
+40+   8051 41               ld      b,c
+41+   8052              nxt1:
+42+   8052 3A 33 5B         ld      a,(consts.TEST_23347)   ; (23347) is placed in the bottom line of the screen
+43+   8055 12               ld      (de),a
+44+   8056 10 FA            djnz    nxt1
+45+   8058              leavit:
+46+   8058 E1               pop     hl      ; move to the second slice of each line,
+47+   8059 D1               pop     de      ; and repeat the whole operation until
+48+   805A 24               inc     h       ; all 8 slices of all 24 lines have been scrolled
+49+   805B 7C               ld      a,h
+50+   805C FE 48            cp      $48
+51+   805E 38 CA            jr      c,nxslice
+52+   8060              cleanup
+53+   8060 EB               ex      de,hl   ; clean up the printer buffer
+54+   8061              nxt2:
+55+   8061 73               ld      (hl),e
+56+   8062 2C               inc     l
+57+   8063 20 FC            jr      nz,nxt2
+58+   8065 C9               ret
+59+   8066
+60+   8066                  endmodule
+# file closed: .\webb_lib.asm
+ 6    8066                  include "consts_lib.asm"
+# file opened: .\consts_lib.asm
+ 1+   8066                  module consts
+ 2+   8066
+ 3+   8066              ; screen bitmap 256x192, 6kB
+ 4+   8066              SCREEN_BITMAP_RAM_START = $4000
+ 5+   8066              SCREEN_BITMAP_RAM_END = $57ff
+ 6+   8066
+ 7+   8066              ; screen color attributes 32x24, 768B
+ 8+   8066              SCREEN_COLOR_RAM_START = $5800
+ 9+   8066              SCREEN_COLOR_RAM_END = $5aff
+10+   8066
+11+   8066              ; printer buffer
+12+   8066              PRINTER_BUFFER = $5be0
+13+   8066
+14+   8066              TEST_23346 = $5b32
+15+   8066              TEST_23347 = $5b33
+16+   8066
+17+   8066              ENTER = $0D
+18+   8066
+19+   8066              ROM_FONT_ADDR_POINTER = $5C36 ; contains address of system fonts, standard is $3d00
+20+   8066              ROM_FONT_ADDR = $3d00
+21+   8066
+22+   8066                  endmodule
+# file closed: .\consts_lib.asm
+ 7    8066                  include "cauldwell_lib.asm"
+# file opened: .\cauldwell_lib.asm
+ 1+   8066              ; How to Write ZX Spectrum Games, Jonathan Cauldwell
+ 2+   8066
+ 3+   8066                  include "consts_lib.asm"
+# file opened: .\consts_lib.asm
+ 1++  8066                  module consts
+ 2++  8066
+ 3++  8066              ; screen bitmap 256x192, 6kB
+ 4++  8066              SCREEN_BITMAP_RAM_START = $4000
+ 5++  8066              SCREEN_BITMAP_RAM_END = $57ff
+ 6++  8066
+ 7++  8066              ; screen color attributes 32x24, 768B
+ 8++  8066              SCREEN_COLOR_RAM_START = $5800
+ 9++  8066              SCREEN_COLOR_RAM_END = $5aff
+10++  8066
+11++  8066              ; printer buffer
+12++  8066              PRINTER_BUFFER = $5be0
+13++  8066
+14++  8066              TEST_23346 = $5b32
+15++  8066              TEST_23347 = $5b33
+16++  8066
+17++  8066              ENTER = $0D
+18++  8066
+19++  8066              ROM_FONT_ADDR_POINTER = $5C36 ; contains address of system fonts, standard is $3d00
+20++  8066              ROM_FONT_ADDR = $3d00
+21++  8066
+22++  8066                  endmodule
+# file closed: .\consts_lib.asm
+ 4+   8066
+ 5+   8066              COPY_FONT_ADDR = 60000
+ 6+   8066              OPEN_CHANNEL_PROC = 5633
+ 7+   8066
+ 8+   8066                  module cauldwell
+ 9+   8066
+10+   8066              set_screen_to_upper:
+11+   8066 3E 02            ld      a,2          ; open channel #2 (upper screen)
+12+   8068 CD 01 16         call    OPEN_CHANNEL_PROC
+13+   806B
+14+   806B              set_bold_font:
+15+   806B D5               push    de
+16+   806C C5               push    bc
+17+   806D E5               push    hl
+18+   806E 21 00 3D         ld      hl,consts.ROM_FONT_ADDR
+19+   8071 11 60 EA         ld      de,COPY_FONT_ADDR
+20+   8074 01 00 03         ld      bc,$300                     ; 96 chars * 8 rows
+21+   8077              bf_nxt:
+22+   8077 7E               ld      a,(hl)      ; get bitmap
+23+   8078 07               rlca                ; rotate it left
+24+   8079 B6               or      (hl)        ; combine
+25+   807A 12               ld      (de),a      ; store
+26+   807B 23               inc     hl          ; next byte of old
+27+   807C 13               inc     de          ; next byte of new
+28+   807D 0B               dec     bc          ; decrement counter
+29+   807E 78               ld      a,b         ; high byte combine with low byte
+30+   807F B1               or      c
+31+   8080 20 F5            jr      nz,bf_nxt      ; repeat until bc=0
+32+   8082 21 60 E9         ld      hl,COPY_FONT_ADDR-256   ; font minus 32*8
+33+   8085 22 36 5C         ld      (consts.ROM_FONT_ADDR_POINTER),hl
+34+   8088 E1               pop     hl
+35+   8089 C1               pop     bc
+36+   808A D1               pop     de
+37+   808B C9               ret
+38+   808C
+39+   808C                  endmodule
+# file closed: .\cauldwell_lib.asm
+ 8    808C
+ 9    808C C3 E7 80         jp start
+10    808F
+11    808F              data:
+12    808F 48 65 6C 6C      db "Hello World!",consts.ENTER
+12    8093 6F 20 57 6F
+12    8097 72 6C 64 21
+12    809B 0D
+13    809C 48 65 6C 6C      db "Hello World 2!",consts.ENTER
+13    80A0 6F 20 57 6F
+13    80A4 72 6C 64 20
+13    80A8 32 21 0D
+14    80AB 48 65 6C 6C      db "Hello World 3!",consts.ENTER
+14    80AF 6F 20 57 6F
+14    80B3 72 6C 64 20
+14    80B7 33 21 0D
+15    80BA 48 65 6C 6C      db "Hello World 4!",consts.ENTER
+15    80BE 6F 20 57 6F
+15    80C2 72 6C 64 20
+15    80C6 34 21 0D
+16    80C9 48 65 6C 6C      db "Hello World 5!",consts.ENTER
+16    80CD 6F 20 57 6F
+16    80D1 72 6C 64 20
+16    80D5 35 21 0D
+17    80D8 48 65 6C 6C      db "Hello World 6!",consts.ENTER
+17    80DC 6F 20 57 6F
+17    80E0 72 6C 64 20
+17    80E4 36 21 0D
+18    80E7              DATA_LENGTH = $ - data
+19    80E7
+20    80E7              start:
+21    80E7 CD 6B 80         call cauldwell.set_bold_font
+22    80EA CD 0F 80         call screen.clear
+23    80ED CD 66 80         call cauldwell.set_screen_to_upper
+24    80F0 21 00 40         ld hl,$4000
+25    80F3 21 8F 80         ld hl,data
+26    80F6 06 58            ld b,DATA_LENGTH
+27    80F8              print_loop:
+28    80F8 7E               ld a,(hl)
+29    80F9 D7               rst $10
+30    80FA 23               inc hl
+31    80FB 10 FB            djnz print_loop
+32    80FD
+33    80FD CD 22 80         call webb.upws
+34    8100 C9               ret
+35    8101
+36    8101                  savesna "webb_lib_test.sna",start
+37    8101
+# file closed: .\webb_lib_test.asm

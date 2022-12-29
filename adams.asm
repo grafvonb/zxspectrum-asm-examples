@@ -5,7 +5,7 @@ ENTER = $0D
 
     org $8000
     include "screen_lib.asm"
-    include "screen_lib_ut.asm"
+    include "webb_lib.asm"
 
     jp start
  
@@ -34,7 +34,10 @@ print_loop:
     ld a,$45
     rst $10
 
-    // call screen.clear
+    call webb.upws
+    call webb.upws
+    call webb.upws
+    call webb.upws
     ret
 
     savesna "adams.sna",start

@@ -20,7 +20,7 @@
       },
       "sjasmplus": [
         {
-          "path": "adams.sld"
+          "path": "webb_lib_test.sld.txt"
         }
       ],
       "commandsAfterLaunch": [],
@@ -31,7 +31,7 @@
       },
       "startAutomatically": false,
       "rootFolder": "${workspaceFolder}",
-      "load": "adams.sna"
+      "load": "webb_lib_test.sna"
     },
     {
       "type": "dezog",
