@@ -1,0 +1,97 @@
+Sections:
+00: "org0001:0" (0-4C)
+
+
+Source: "helw.asm"
+                            	     1: ;Hello world! on screen 0
+                            	     2:         include trap_keys.asm
+
+Source: "trap_keys.asm"
+                            	     1: ;Trap 1 Keys - Manager Traps (MT)
+                            	     2: MT_INF          equ     $00     ;get system information
+                            	     3: MT_CJOB         equ     $01     ;create a job
+                            	     4: MT_JINF         equ     $02     ;get information on job
+                            	     5: MT_RJOB         equ     $04     ;remove a job
+                            	     6: 
+                            	     7: 
+                            	     8: 
+                            	     9: ;Trap 3 Keys - I/O Traps (IO)
+                            	    10: IO_PEND         equ     $00     ;check for pending input
+                            	    11: IO_FBYTE        equ     $01     ;fetch a byte
+                            	    12: IO_FLINE        equ     $02     ;fetch a line of bytes
+                            	    13: IO_FSTRG        equ     $03     ;fetch a string of bytes
+                            	    14: IO_EDLIN        equ     $04     ;edit a line
+                            	    15: 
+                            	    16: IO_SBYTE        equ     $05     ;Send a byte
+                            	    17:                                 ;call params: 
+                            	    18:                                 ;d1.b   - byte to be sent
+                            	    19:                                 ;d3.w   - timeout
+                            	    20:                                 ;a0     - channel ID
+                            	    21:                                 ;ret params:
+                            	    22:                                 ;-
+                            	    23:                                 ;errors:
+                            	    24:                                 ;NC     - not complete
+                            	    25:                                 ;NO     - channel not open
+                            	    26:                                 ;DF     - drive full
+                            	    27:                                 ;OR     - off window/paper etc
+
+Source: "helw.asm"
+                            	     3: 
+                            	     4:         org     0
+                            	     5: 
+                            	     6: start:
+00:00000000 47FA000A        	     7:         lea     message_data(pc),a3         ;point on data
+00:00000004 6114            	     8:         bsr     print_string
+00:00000006 613C            	     9:         bsr     print_new_line
+                            	    10: 
+00:00000008 7000            	    11:         clr.l   d0
+00:0000000A 4E75            	    12:         rts
+                            	    13: 
+                            	    14: message_data:
+00:0000000C 48656C6C6F20576F	    15:         dc.b    'Hello World!',$ff
+00:00000014 726C6421
+00:00000018 FF
+                            	    16:         even
+                            	    17: 
+                            	    18: print_string:
+00:0000001A 121B            	    19:         move.b  (a3)+,d1                ;read a char
+00:0000001C B23C00FF        	    20:         cmp.b   #$ff,d1                 ;check if at the end of string
+00:00000020 6704            	    21:         beq     print_string_done       ;exit
+00:00000022 6104            	    22:         bsr     print_char              ;print char
+00:00000024 60F4            	    23:         bra     print_string            ;loop to next char
+                            	    24: print_string_done:
+00:00000026 4E75            	    25:         rts
+                            	    26: 
+                            	    27: print_char:
+00:00000028 48E7FFFF        	    28:         movem.l d0-d7/a0-a7,-(sp)       ;backup all regs
+00:0000002C C2BC000000FF    	    29:         and.l   #$ff,d1                 ;filter lowest nibble
+00:00000032 207C00010001    	    30:         move.l  #$00010001,a0           ;set console channel id
+00:00000038 76FF            	    31:         moveq   #-1,d3                  ;no timeout
+00:0000003A 7005            	    32:         moveq   #IO_SBYTE,d0            ;define trap key
+00:0000003C 4E43            	    33:         trap    #3                      ;call trap
+00:0000003E 4CDFFFFF        	    34:         movem.l (sp)+,d0-d7/a0-a7       ;restore all regs
+00:00000042 4E75            	    35:         rts
+                            	    36: 
+                            	    37: print_new_line:
+00:00000044 123C000A        	    38:         move.b  #$0a,d1                 ;define LF char
+00:00000048 61DE            	    39:         bsr     print_char
+00:0000004A 4E75            	    40:         rts
+
+
+Symbols by name:
+IO_SBYTE                         E:00000005
+message_data                     A:0000000C
+print_char                       A:00000028
+print_new_line                   A:00000044
+print_string                     A:0000001A
+print_string_done                A:00000026
+start                            A:00000000
+
+Symbols by value:
+00000000 start
+00000005 IO_SBYTE
+0000000C message_data
+0000001A print_string
+00000026 print_string_done
+00000028 print_char
+00000044 print_new_line

@@ -1,0 +1,92 @@
+Sections:
+00: "org0001:0" (0-51)
+
+
+Source: "4.asm"
+                            	     1: ;write message
+                            	     2: ;from QL Assembly Language Programming by Colin Opie
+                            	     3: 
+                            	     4:         org     0
+                            	     5: 
+                            	     6: MYSELF          equ     -1      ;if negative then the job is the current job
+                            	     7: MT_FRJOB        equ     $05     ;force remove job from transient program area
+                            	     8: SD_SETST        equ     $2d     ;set character size and spacing
+                            	     9: UT_SCR          equ     $c8     ;set up screen windows
+                            	    10: UT_MTEXT        equ     $d0     ;send a message to a channel
+                            	    11: 
+                            	    12: header:
+00:00000000 6010            	    13:         bra     start
+00:00000002 00000000        	    14:         dc.l    0
+00:00000006 4AFB            	    15:         dc.w    $4afb           ;standard header
+00:00000008 0007            	    16:         dc.w    7
+00:0000000A 4D657373616765  	    17:         dc.b    'Message'
+                            	    18:         even
+                            	    19: 
+                            	    20: start:
+00:00000012 43FA002A        	    21:         lea     scr(pc),a1      ;set up a screen
+00:00000016 387800C8        	    22:         move.w  UT_SCR,a4
+00:0000001A 4E94            	    23:         jsr     (a4)            ;call vector
+00:0000001C 6618            	    24:         bne     error_handler   ;check error return
+                            	    25: 
+00:0000001E 702D            	    26:         moveq   #SD_SETST,d0    ;set character size
+00:00000020 7203            	    27:         moveq   #3,d1           ;wide
+00:00000022 7401            	    28:         moveq   #1,d2           ;tall
+00:00000024 76FF            	    29:         moveq   #-1,d3          ;no timeout
+00:00000026 4E43            	    30:         trap    #3
+                            	    31: 
+00:00000028 43FA0020        	    32:         lea     hello(pc),a1    ;write a message
+00:0000002C 387800D0        	    33:         move.w  UT_MTEXT,a4
+00:00000030 4E94            	    34:         jsr     (a4)
+                            	    35: 
+00:00000032 7000            	    36:         clr.l   d0
+00:00000034 4E75            	    37:         rts
+                            	    38: 
+                            	    39: error_handler:
+00:00000036 2600            	    40:         move.l  d0,d3           ;notify any error
+00:00000038 7005            	    41:         moveq   #MT_FRJOB,d0    ;force remove
+00:0000003A 72FF            	    42:         moveq   #MYSELF,d1      ;current job
+00:0000003C 4E41            	    43:         trap    #1
+                            	    44: 
+                            	    45: scr:
+00:0000003E FF              	    46:         dc.b    $ff             ;checkerboard border
+00:0000003F 04              	    47:         dc.b    $04             ;4 pixels wide
+00:00000040 04              	    48:         dc.b    $04             ;green background
+00:00000041 00              	    49:         dc.b    $00             ;black letters
+00:00000042 00C8            	    50:         dc.w    200             ;200 pixel wide
+00:00000044 0023            	    51:         dc.w    35              ;35 high
+00:00000046 009C            	    52:         dc.w    156             ;in the middle
+00:00000048 0064            	    53:         dc.w    100
+                            	    54: 
+                            	    55: hello:
+00:0000004A 0005            	    56:         dc.w    5               ;text length
+00:0000004C 48616C6C6F      	    57:         dc.b    'Hallo'
+                            	    58: 
+                            	    59:         end
+                            	    60: 
+                            	    61: 
+                            	    62: 
+
+
+Symbols by name:
+error_handler                    A:00000036
+header                           A:00000000
+hello                            A:0000004A
+MT_FRJOB                         E:00000005
+MYSELF                           E:FFFFFFFF
+scr                              A:0000003E
+SD_SETST                         E:0000002D
+start                            A:00000012
+UT_MTEXT                         E:000000D0
+UT_SCR                           E:000000C8
+
+Symbols by value:
+FFFFFFFF MYSELF
+00000000 header
+00000005 MT_FRJOB
+00000012 start
+0000002D SD_SETST
+00000036 error_handler
+0000003E scr
+0000004A hello
+000000C8 UT_SCR
+000000D0 UT_MTEXT

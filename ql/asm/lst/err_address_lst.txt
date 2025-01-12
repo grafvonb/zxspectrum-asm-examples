@@ -1,0 +1,152 @@
+Sections:
+00: "org0001:0" (0-E8)
+
+
+Source: "err_address.asm"
+                            	     1: ;simulation of the address error (Number 3, location $00c)
+                            	     2:         org     0
+                            	     3: 
+                            	     4:         include lib_err_handlers.asm
+
+Source: "lib_err_handlers.asm"
+                            	     1: ;error handlers
+                            	     2:         include lib_consts.asm
+
+Source: "lib_consts.asm"
+                            	     1: CUR_JOB         equ     -1
+
+Source: "lib_err_handlers.asm"
+                            	     3:         include lib_trap_keys.asm
+
+Source: "lib_trap_keys.asm"
+                            	     1: ;Trap 1 Keys - Manager Traps (MT)
+                            	     2: MT_INF          equ     $00     ;Get system information
+                            	     3:                                 ;call params:
+                            	     4:                                 ;   -
+                            	     5:                                 ;ret params:
+                            	     6:                                 ;   d1.l   - current job id
+                            	     7:                                 ;   d2.l   - ASCII version (n.nn)
+                            	     8:                                 ;   a0     - pointer to system vars
+                            	     9: 
+                            	    10: MT_CJOB         equ     $01     ;create a job
+                            	    11: MT_JINF         equ     $02     ;get information on job
+                            	    12: MT_RJOB         equ     $04     ;remove a job
+                            	    13: MT_FRJOB        equ     $05     ;force remove a job
+                            	    14: MT_FREE         equ     $06     ;find how much free space there is
+                            	    15: 
+                            	    16: MT_TRAPV        equ     $07     ;Set pointer to trap redirection vectors
+                            	    17:                                 ;Note: When a routine in the table is entered as a result of an exception,
+                            	    18:                                 ;      the CPU is in supervisor mode. The routine should return with an rte
+                            	    19:                                 ;      command (not rts). Any registers used must be saved and restored.
+                            	    20:                                 ;call params:
+                            	    21:                                 ;   d1.l   - job id
+                            	    22:                                 ;   a1     - pointer to table
+                            	    23:                                 ;ret params:
+                            	    24:                                 ;   d1.l   - job id
+                            	    25:                                 ;   a0     - base of job
+                            	    26: 
+                            	    27: ;Trap 3 Keys - I/O Traps (IO)
+                            	    28: IO_PEND         equ     $00     ;check for pending input
+                            	    29: IO_FBYTE        equ     $01     ;fetch a byte
+                            	    30: IO_FLINE        equ     $02     ;fetch a line of bytes
+                            	    31: IO_FSTRG        equ     $03     ;fetch a string of bytes
+                            	    32: IO_EDLIN        equ     $04     ;edit a line
+                            	    33: 
+                            	    34: IO_SBYTE        equ     $05     ;Send a byte
+                            	    35:                                 ;call params: 
+                            	    36:                                 ;   d1.b   - byte to be sent
+                            	    37:                                 ;   d3.w   - timeout
+                            	    38:                                 ;   a0     - channel ID
+                            	    39:                                 ;ret params:
+                            	    40:                                 ;   -
+                            	    41:                                 ;errors:
+                            	    42:                                 ;   NC     - not complete
+                            	    43:                                 ;   NO     - channel not open
+                            	    44:                                 ;   DF     - drive full
+                            	    45:                                 ;   OR     - off window/paper etc
+
+Source: "lib_err_handlers.asm"
+                            	     4: 
+                            	     5: eh_proc:
+00:00000000 43FA003A        	     6:         lea     eh_table(pc),a1         ;table start
+00:00000004 41FA0022        	     7:         lea     eh_address_err(pc),a0
+00:00000008 22C8            	     8:         move.l  a0,(a1)+                ;store address_err handler in table
+00:0000000A 41FA0022        	     9:         lea     eh_illegal_err(pc),a0
+00:0000000E 22C8            	    10:         move.l  a0,(a1)+                ;store illegal_err handler in table
+00:00000010 41FA0028        	    11:         lea     eh_other(pc),a0
+00:00000014 7010            	    12:         move.l #16,d0                   ;number of vectors-1
+                            	    13: eh_fill_table:
+00:00000016 22C8            	    14:         move.l  a0,(a1)+                ;store other in the rest of the table
+00:00000018 51C8FFFC        	    15:         dbf     d0,eh_fill_table        ;do all 17 vectors
+                            	    16:         
+00:0000001C 43FA001E        	    17:         lea     eh_table(pc),a1            
+00:00000020 72FF            	    18:         moveq   #CUR_JOB,d1             ;current job
+00:00000022 7007            	    19:         moveq   #MT_TRAPV,d0            ;set trap key
+00:00000024 4E41            	    20:         trap    #1                      ;call QDOS
+00:00000026 4E75            	    21:         rts
+                            	    22: 
+                            	    23: ;address error exception handler
+                            	    24: eh_address_err:
+00:00000028 70F1            	    25:         move.l  #-15,d0                 ;'bad parameter'
+00:0000002A 508F            	    26:         addq.l  #8,a7                   ;skip over extra words on stack
+00:0000002C 6006            	    27:         bra     eh_print_error
+                            	    28: 
+                            	    29: ;illegal exception handler
+                            	    30: eh_illegal_err:
+00:0000002E 70ED            	    31:         move.l  #-19,d0                 ;'not implemented'
+00:00000030 54AF0002        	    32:         addq.l  #2,2(a7)                ;restart at the next instruction
+                            	    33:         bra     eh_print_error
+                            	    34: 
+                            	    35: eh_print_error:
+00:00000034 307800CA        	    36:         movea.w $0ca,a0                 ;get the vector
+00:00000038 4E90            	    37:         jsr     (a0)                    ;call the 'print error message' routine
+                            	    38: eh_other:
+00:0000003A 4E73            	    39:         rte                             ;end the execution
+                            	    40: 
+                            	    41: eh_table:
+00:0000003C 0000            	    42:         ds.w    76
+00:0000003E *
+                            	    43: 
+
+Source: "err_address.asm"
+                            	     5: 
+                            	     6: start:
+00:000000D4 41FA000A        	     7:         lea     data(pc),a0
+00:000000D8 1018            	     8:         move.b  (a0)+,d0
+00:000000DA 3210            	     9:         move.w  (a0),d1
+                            	    10: 
+00:000000DC 7000            	    11:         clr.l   d0
+00:000000DE 4E75            	    12:         rts
+                            	    13: 
+                            	    14: data:
+00:000000E0 0000            	    15:         dc.w    0,0,0,0
+00:000000E2 0000
+00:000000E4 0000
+00:000000E6 0000
+
+
+Symbols by name:
+CUR_JOB                          E:FFFFFFFF
+data                             A:000000E0
+eh_address_err                   A:00000028
+eh_fill_table                    A:00000016
+eh_illegal_err                   A:0000002E
+eh_other                         A:0000003A
+eh_print_error                   A:00000034
+eh_proc                          A:00000000
+eh_table                         A:0000003C
+MT_TRAPV                         E:00000007
+start                            A:000000D4
+
+Symbols by value:
+FFFFFFFF CUR_JOB
+00000000 eh_proc
+00000007 MT_TRAPV
+00000016 eh_fill_table
+00000028 eh_address_err
+0000002E eh_illegal_err
+00000034 eh_print_error
+0000003A eh_other
+0000003C eh_table
+000000D4 start
+000000E0 data

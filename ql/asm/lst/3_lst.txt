@@ -1,0 +1,28 @@
+Sections:
+00: "org0001:0" (0-20)
+
+
+Source: "3.asm"
+                            	     1: ;scrolls the screen up one line
+                            	     2: 
+00:00000000 323C000A        	     3:         move.w  #$0a,d1
+                            	     4: start:
+00:00000004 303C1FDF        	     5:         move.w  #$1fdf,d0               ;set count $7f7f/4 (because of long word)
+00:00000008 207C00020080    	     6:         move.l  #$20080,a0              ;define first location on the screen 0
+                            	     7: loop:
+00:0000000E 2150FF80        	     8:         move.l  (a0),-128(a0)           ;move a long word
+00:00000012 5888            	     9:         addq.l  #4,a0                   ;switch to next location on the screen 0
+00:00000014 51C8FFF8        	    10:         dbf     d0,loop                 ;decrement d0, branch if not false (-1)
+00:00000018 51C9FFEA        	    11:         dbf     d1,start
+                            	    12: 
+00:0000001C 7000            	    13:         clr.l   d0
+00:0000001E 4E75            	    14:         rts
+
+
+Symbols by name:
+loop                             A:0000000E
+start                            A:00000004
+
+Symbols by value:
+00000004 start
+0000000E loop

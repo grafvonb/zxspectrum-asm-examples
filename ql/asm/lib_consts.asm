@@ -1,0 +1,1 @@
+CUR_JOB         equ     -1

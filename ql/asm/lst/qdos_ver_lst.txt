@@ -1,0 +1,27 @@
+Sections:
+00: "org0001:0" (0-D)
+
+
+Source: "qdos_ver.asm"
+                            	     1: ;get the Qdos version which can be read in SuperBASIC as CALL does not allow return values
+                            	     2:         org     0
+                            	     3: 
+                            	     4: start:
+00:00000000 7000            	     5:         clr.l   d0              ;get ready for the trap
+00:00000002 4E41            	     6:         trap    #1              ;call Qdos
+00:00000004 41FA0006        	     7:         lea     params(pc),a0
+00:00000008 2082            	     8:         move.l  d2,(a0)         ;store d2
+00:0000000A 4E75            	     9:         rts
+                            	    10: 
+                            	    11: params:
+00:0000000C 04              	    12:         dc.b    4
+                            	    13: 
+
+
+Symbols by name:
+params                           A:0000000C
+start                            A:00000000
+
+Symbols by value:
+00000000 start
+0000000C params
