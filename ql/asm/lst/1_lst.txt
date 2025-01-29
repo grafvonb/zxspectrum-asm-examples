@@ -1,0 +1,21 @@
+Sections:
+00: "org0001:0" (0-A)
+
+
+Source: "1.asm"
+                            	     1: ;just return to SuperBASIC
+                            	     2: 
+                            	     3: start:
+00:00000000 4E40            	     4:         trap    #0              ;switch into supervisor mode
+00:00000002 027CDFFF        	     5:         andi    #$dfff,sr       ;get back to user mode
+                            	     6: 
+00:00000006 7000            	     7:         clr.l   d0              ;has to be cleared, otherwise SuperBASIC reports an error
+00:00000008 4E75            	     8:         rts
+                            	     9: 
+
+
+Symbols by name:
+start                            A:00000000
+
+Symbols by value:
+00000000 start
